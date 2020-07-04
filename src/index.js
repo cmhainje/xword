@@ -1,44 +1,32 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import openSocket from 'socket.io-client'
+import $ from 'jquery'
 
-import puzzleData from './puzzles/2020_03_08_Andrew_White.json'
 import './index.css';
 
 
 // ====
-// LOAD IN THE PUZZLE
-const PUZZLE = {
-  "title":   puzzleData.title,
-  "author":  puzzleData.author,
-  "paper":   puzzleData.paper,
-  "date":    puzzleData.date,
-  "squares": puzzleData.puzzleSquares,
-  "across":  puzzleData.acrossClues,
-  "down":    puzzleData.downClues,
-  "n":       puzzleData.puzzleSquares.length
-};
-
-
-function getClueNumbers() {
+// PUZZLE LOADING HELPERS
+function getClueNumbers(puzzleData) {
   var clueNumbers = []
   var clueCount = 1;
 
   function isClueSquare(i, j) {
-    if (PUZZLE.squares[i][j] !== 1) {
+    if (puzzleData.puzzleSquares[i][j] !== 1) {
       return (
         i === 0 || j === 0 ||
-        PUZZLE.squares[i-1][j] === 1 ||
-        PUZZLE.squares[i][j-1] === 1
+        puzzleData.puzzleSquares[i-1][j] === 1 ||
+        puzzleData.puzzleSquares[i][j-1] === 1
       );
     }
     else
       return false;
   }
 
-  for (var i = 0; i < PUZZLE.n; i++) {
+  for (var i = 0; i < puzzleData.puzzleSquares.length; i++) {
     const row = [];
-    for (var j = 0; j < PUZZLE.n; j++) {
+    for (var j = 0; j < puzzleData.puzzleSquares.length; j++) {
       if (isClueSquare(i, j))
         row.push(clueCount++);
       else
@@ -49,10 +37,10 @@ function getClueNumbers() {
   return clueNumbers;
 }
 
-function makeClueToCoordsMap(clueNumbers) {
+function makeClueToCoordsMap(n, clueNumbers) {
   let map = new Map();
-  for (var i = 0; i < PUZZLE.n; i++) {
-    for (var j = 0; j < PUZZLE.n; j++) {
+  for (var i = 0; i < n; i++) {
+    for (var j = 0; j < n; j++) {
       if (clueNumbers[i][j] !== 0) {
         map.set(clueNumbers[i][j], {"row": i, "col": j})
       }
@@ -61,27 +49,13 @@ function makeClueToCoordsMap(clueNumbers) {
   return map;
 }
 
-const CLUE_NUMBERS = getClueNumbers();
-const CLUE_TO_COORDS = makeClueToCoordsMap(CLUE_NUMBERS);
-
 var USER_COLOR = '#EED7B9';
 const CLUE_COLOR = '#C9F0EA';
 
 
 // ====
 // SERVER SET-UP
-const socket = openSocket('http://208.64.170.251:8000');
-socket.on('color', (color) => {
-  socket.color = color;
-  USER_COLOR = socket.color;
-});
-socket.on('id', (id) => { socket.id = id; });
 
-socket.friends = new Map();
-socket.on('newFriend', (data) => {
-  if (data[0] === socket.id) return;
-  socket.friends.set(data[0], data[1]);
-});
 
 
 
@@ -106,10 +80,10 @@ class Square extends React.Component {
 
 class Board extends React.Component {
   renderSquare(row, col) {
-    if (PUZZLE.squares[row][col] === 0) {
+    if (this.props.puzzle.squares[row][col] === 0) {
       return <Square
         key={[row, col]}
-        clue={CLUE_NUMBERS[row][col]}
+        clue={this.props.puzzle.clueNumbers[row][col]}
         value={this.props.squareValues[row][col]}
         color={this.props.squareColors[row][col]}
 
@@ -123,9 +97,9 @@ class Board extends React.Component {
 
   render() {
     const items = [];
-    for (var i = 0; i < PUZZLE.n; i++) {
+    for (var i = 0; i < this.props.puzzle.n; i++) {
       const row = [];
-      for (var j = 0; j < PUZZLE.n; j++)
+      for (var j = 0; j < this.props.puzzle.n; j++)
         row.push(this.renderSquare(i, j));
       items.push(<div className="row" key={i} >{row}</div>)
     }
@@ -169,9 +143,9 @@ class Game extends React.Component {
     super(props);
 
     this.emptyBoard = [];
-    for (var i = 0; i < PUZZLE.n; i++) {
+    for (var i = 0; i < this.props.puzzle.n; i++) {
       const row = [];
-      for (var j = 0; j < PUZZLE.n; j++)
+      for (var j = 0; j < this.props.puzzle.n; j++)
         row.push(0);
       this.emptyBoard.push(row);
     }
@@ -204,7 +178,7 @@ class Game extends React.Component {
     });
 
     // Server listeners for updates
-    socket.on('valueUpdate', (newValues) => {
+    this.props.socket.on('valueUpdate', (newValues) => {
       this.setState((prevState, props) => {
         return {
           squareValues: newValues,
@@ -213,7 +187,7 @@ class Game extends React.Component {
       });
     });
 
-    socket.on('selectUpdate', (data) => {
+    this.props.socket.on('selectUpdate', (data) => {
       const [row, col, id] = data;
       var found = false;
       for (i = 0; i < this.friendsCells.length; i++) {
@@ -230,7 +204,7 @@ class Game extends React.Component {
       for (i = this.friendsCells.length - 1; i >= 0; i--) {
         const row = this.friendsCells[i].row;
         const col = this.friendsCells[i].col;
-        const color = socket.friends.get(this.friendsCells[i].id);
+        const color = this.props.socket.friends.get(this.friendsCells[i].id);
 
         newFriendMask[row][col] = color;
       }
@@ -240,8 +214,8 @@ class Game extends React.Component {
     });
 
 
-    socket.on('byeFriend', (id) => {
-      socket.friends.delete(id);
+    this.props.socket.on('byeFriend', (id) => {
+      this.props.socket.friends.delete(id);
       var newFriendsCells = [];
       for (i = 0; i < this.friendsCells.length; i++) {
         if (this.friendsCells[i].id !== id) {
@@ -254,7 +228,7 @@ class Game extends React.Component {
       for (i = this.friendsCells.length - 1; i >= 0; i--) {
         const row = this.friendsCells[i].row;
         const col = this.friendsCells[i].col;
-        const color = socket.friends.get(this.friendsCells[i].id);
+        const color = this.props.socket.friends.get(this.friendsCells[i].id);
 
         newFriendMask[row][col] = color;
       }
@@ -275,7 +249,7 @@ class Game extends React.Component {
           squareColors: prevState.squareColors,
         };
       },
-      () => { socket.emit('updateValue', newValues); }
+      () => { this.props.socket.emit('updateValue', newValues); }
     );
   }
 
@@ -286,9 +260,9 @@ class Game extends React.Component {
 
     // If there is a clue selected, move selected cell forward along the clue direction
     if (this.selectedClue.number !== 0) {
-      if (this.selectedClue.across && col + 1 < PUZZLE.n && PUZZLE.squares[row][col+1] !== 1)
+      if (this.selectedClue.across && col + 1 < this.props.puzzle.n && this.props.puzzle.squares[row][col+1] !== 1)
         this.updateSelectedCell(row, col + 1);
-      else if (!this.selectedClue.across && row + 1 < PUZZLE.n && PUZZLE.squares[row+1][col] !== 1)
+      else if (!this.selectedClue.across && row + 1 < this.props.puzzle.n && this.props.puzzle.squares[row+1][col] !== 1)
         this.updateSelectedCell(row + 1, col);
     }
   }
@@ -300,9 +274,9 @@ class Game extends React.Component {
 
     // If there is a clue selected, move selected cell backward along the clue direction
     if (this.selectedClue.number !== 0) {
-      if (this.selectedClue.across && col - 1 >= 0 && PUZZLE.squares[row][col-1] !== 1)
+      if (this.selectedClue.across && col - 1 >= 0 && this.props.puzzle.squares[row][col-1] !== 1)
         this.updateSelectedCell(row, col - 1);
-      else if (!this.selectedClue.across && row - 1 >= 0 && PUZZLE.squares[row-1][col] !== 1)
+      else if (!this.selectedClue.across && row - 1 >= 0 && this.props.puzzle.squares[row-1][col] !== 1)
         this.updateSelectedCell(row - 1, col);
     }
   }
@@ -312,8 +286,8 @@ class Game extends React.Component {
       (prevState, props) => {
         var newColors = this.newEmptyBoard("#FFFFFF");
         // Apply clue, friends, and select masks
-        for (var i = 0; i < PUZZLE.n; i++) {
-          for (var j = 0; j < PUZZLE.n; j++) {
+        for (var i = 0; i < this.props.puzzle.n; i++) {
+          for (var j = 0; j < this.props.puzzle.n; j++) {
             if (this.selectMask[i][j])
               newColors[i][j] = USER_COLOR;
             else if (this.friendMask[i][j] !== "")
@@ -343,7 +317,7 @@ class Game extends React.Component {
 
     this.updateColors();
 
-    socket.emit('updateSelect', [row, col]);
+    this.props.socket.emit('updateSelect', [row, col]);
   }
 
   handleArrowKeyPress(keyCode) {
@@ -354,18 +328,18 @@ class Game extends React.Component {
     switch (keyCode) {
       case 37: // left arrow
         newRow = oldRow;
-        newCol = (oldCol - 1 + PUZZLE.n) % PUZZLE.n;
+        newCol = (oldCol - 1 + this.props.puzzle.n) % this.props.puzzle.n;
         break;
       case 38: // up arrow
-        newRow = (oldRow - 1 + PUZZLE.n) % PUZZLE.n;
+        newRow = (oldRow - 1 + this.props.puzzle.n) % this.props.puzzle.n;
         newCol = oldCol;
         break;
       case 39: // right arrow
         newRow = oldRow;
-        newCol = (oldCol + 1) % PUZZLE.n;
+        newCol = (oldCol + 1) % this.props.puzzle.n;
         break;
       case 40: // down arrow
-        newRow = (oldRow + 1) % PUZZLE.n;
+        newRow = (oldRow + 1) % this.props.puzzle.n;
         newCol = oldCol;
         break;
       default:
@@ -388,15 +362,15 @@ class Game extends React.Component {
       return;
     }
 
-    const coords = CLUE_TO_COORDS.get(parseInt(number));
+    const coords = this.puzzle.clueToCoords.get(parseInt(number));
     const row = coords.row;
     const col = coords.col;
 
     if (across) {
-      for (var c = col; c < PUZZLE.n && PUZZLE.squares[row][c] !== 1; c++)
+      for (var c = col; c < this.props.puzzle.n && this.props.puzzle.squares[row][c] !== 1; c++)
         newClueMask[row][c] = true;
     } else {
-      for (var r = row; r < PUZZLE.n && PUZZLE.squares[r][col] !== 1; r++)
+      for (var r = row; r < this.props.puzzle.n && this.props.puzzle.squares[r][col] !== 1; r++)
         newClueMask[r][col] = true;
     }
 
@@ -421,11 +395,12 @@ class Game extends React.Component {
     return (
       <div className="game">
         <div className="heading">
-          <h1>{PUZZLE.title}</h1>
-          <p>{PUZZLE.author} | {PUZZLE.paper} | {PUZZLE.date}</p>
+          <h1>{this.props.puzzle.title}</h1>
+          <p>{this.props.puzzle.author} | {this.props.puzzle.paper} | {this.props.puzzle.date}</p>
         </div>
         <div className="game-board">
           <Board
+            puzzle={this.props.puzzle}
             squareValues={this.state.squareValues}
             squareColors={this.state.squareColors}
             handleClick={(row, col) => {this.updateSelectedCell(row, col)}}
@@ -435,7 +410,7 @@ class Game extends React.Component {
           <h2>Across</h2>
           <Clues
             handleClick={(number) => {this.updateSelectedClue(number, true)}}
-            clues={PUZZLE.across}
+            clues={this.props.puzzle.across}
             selectedClue={this.selectedClue.across ? this.selectedClue.number : 0}
           />
         </div>
@@ -443,7 +418,7 @@ class Game extends React.Component {
           <h2>Down</h2>
           <Clues
             handleClick={(number) => {this.updateSelectedClue(number, false)}}
-            clues={PUZZLE.down}
+            clues={this.props.puzzle.down}
             selectedClue={this.selectedClue.across ? 0 : this.selectedClue.number}
           />
         </div>
@@ -458,7 +433,71 @@ class Game extends React.Component {
   }
 }
 
+
+class Home extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      gameVisible: false,
+      puzzle: {}
+    };
+
+    this.loadGame = this.loadGame.bind(this);
+
+    this.socket = openSocket('http://208.64.170.251:8000');
+    this.socket.on('color', (color) => {
+      this.socket.color = color;
+      USER_COLOR = this.socket.color;
+    });
+    this.socket.on('id', (id) => { this.socket.id = id; });
+
+    this.socket.friends = new Map();
+    this.socket.on('newFriend', (data) => {
+      if (data[0] === this.socket.id) return;
+      this.socket.friends.set(data[0], data[1]);
+    });
+  }
+
+  loadGame(puzzleURL) {
+    $.getJSON(puzzleURL, (puzzleData) => {
+      const clueNumbers = getClueNumbers(puzzleData);
+      const clueToCoords = makeClueToCoordsMap(puzzleData.puzzleSquares.length, clueNumbers);
+
+      const PUZZLE = {
+        "title":   puzzleData.title,
+        "author":  puzzleData.author,
+        "paper":   puzzleData.paper,
+        "date":    puzzleData.date,
+        "squares": puzzleData.puzzleSquares,
+        "across":  puzzleData.acrossClues,
+        "down":    puzzleData.downClues,
+        "n":       puzzleData.puzzleSquares.length,
+        "clueNumbers": clueNumbers,
+        "clueToCoords": clueToCoords,
+      };
+
+      this.setState({ gameVisible: true, puzzle: PUZZLE });
+    });
+  }
+
+  render() {
+    if (this.state.gameVisible) {
+      return <Game puzzle={this.state.puzzle} socket={this.socket} />;
+    }
+    return (
+      <div className="home-menu">
+        <h1>Xword home</h1>
+
+        <ul>
+          <li onClick={() => {this.loadGame('puzzles/2020_03_08_Andrew_White.json')}}>March 8th, 2020 by Andrew White</li>
+          <li onClick={() => {this.loadGame('puzzles/2020_05_05_Andrew_White.json')}}>May 5th, 2020 by Andrew White</li>
+        </ul>
+      </div>
+    );
+  }
+}
+
 ReactDOM.render(
-  <Game />,
+  <Home />,
   document.getElementById('root')
 );
