@@ -326,8 +326,8 @@ class Game extends React.Component {
     const col = this.selectedCell.col;
     this.updateValue(row, col, "");
 
-    // If there is a clue selected, move selected cell backward along the clue direction
-    if (this.selectedClue.number !== 0) {
+    // If in the selected clue, move selected cell backward along the clue direction
+    if (this.selectedClue.number !== 0 && this.clueMask[row][col]) {
       if (this.selectedClue.across && col - 1 >= 0 && this.props.puzzle.squares[row][col-1] !== 1)
         this.updateSelectedCell(row, col - 1);
       else if (!this.selectedClue.across && row - 1 >= 0 && this.props.puzzle.squares[row-1][col] !== 1)
@@ -721,7 +721,7 @@ class StartForm extends React.Component {
                 <option value="2020_02_16_Andrew_White">Nassau Weekly: February 16, 2020 by Andrew White</option>
                 <option value="2020_02_23_Andrew_White">Nassau Weekly: February 23, 2020 by Andrew White</option>
                 <option value="2020_03_01_Andrew_White">Nassau Weekly: March 1, 2020 by Andrew White and Reis White</option>
-                <option value="2020_03_08_Andrew_White">Nassau Weekly: March 3, 2020 by Andrew White</option>
+                <option value="2020_03_08_Andrew_White">Nassau Weekly: March 8, 2020 by Andrew White</option>
                 <option value="2020_05_05_Andrew_White">Nassau Weekly: May 5, 2020 by Andrew White</option>
               </select>
             </div>
