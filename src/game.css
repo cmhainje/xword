@@ -105,3 +105,13 @@ body {
 .heading p {
   margin: 0;
 }
+
+.friend-color {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  vertical-align: bottom;
+  margin-bottom: 2px;
+  margin-right: 5px;
+  border-radius: 50%;
+}

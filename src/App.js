@@ -2,119 +2,84 @@ var app = require('express')();
 var http = require('http').createServer(app);
 var io = require('socket.io')(http);
 
-var sockets = [];
-var boardValues = [];
 
-io.on('connection', (socket) => {
-  console.log('A user connected');
-
-  socket.id = getNewId();
-  socket.color = getNewColor();
-  socket.emit('id', socket.id);
-  socket.emit('color', socket.color);
-
-  if (boardValues.length !== 0)
-    socket.emit('valueUpdate', boardValues);
-
-  for (var i = 0; i < sockets.length; i++) {
-    if (sockets[i].id !== socket.id) {
-      socket.emit('newFriend', [sockets[i].id, sockets[i].color]);
-      if (sockets[i].row !== undefined) {
-        socket.emit('selectUpdate', [sockets[i].row, sockets[i].col, sockets[i].id]);
-      }
+roomCodes = [];
+function roomExists(roomCode) {
+  for (var i = 0; i < roomCodes.length; i++) {
+    if (roomCode === roomCodes[i]) {
+      return true;
     }
   }
-  sockets.push(socket);
+  return false;
+}
 
-  socket.broadcast.emit('newFriend', [socket.id, socket.color]);
+io.on('connection', (socket) => {
+  console.log('New connection: ' + socket.id);
+  socket.emit('connected!');
+  socket.emit('id', socket.id);
 
-  // NOTE: It might be expensive to pass the entire array of values
-  // Change to only pass row, col, newValue if it's a problem
-  socket.on('updateValue', (newValues) => {
-    boardValues = newValues;
-    socket.broadcast.emit('valueUpdate', newValues);
+  // user will send desired name and color
+  socket.on('userInfo', ([name, color]) => {
+    socket.name = name;
+    socket.color = color;
   });
 
-  socket.on('updateSelect', (data) => {
-    const [row, col] = data;
-    socket.row = row; socket.col = col;
-    socket.broadcast.emit('selectUpdate', [row, col, socket.id])
+  // user will ask to either make a room or join a room
+  socket.on('makeRoom', ([roomCode, puzzleID]) => {
+    if (roomExists(roomCode)) {
+      socket.emit('cantMakeRoom');
+      return;
+    }
+
+    roomCodes.push(roomCode);
+    socket.join(roomCode);
+    socket.room = roomCode;
+    socket.emit('madeRoom');
+  });
+
+  socket.on('joinRoom', (roomCode) => {
+    if (!roomExists(roomCode)) {
+      socket.emit('cantJoinRoom');
+      return;
+    }
+
+    socket.room = roomCode;
+    socket.join(roomCode);
+    socket.to(roomCode).emit('requestStatus', socket.id);
+    socket.to(roomCode).emit('newFriend', [socket.id, socket.color, socket.name]);
+  });
+
+  socket.on('currentStatus',
+    (data) => {
+      socket.to(data.requestor).emit('status', data);
+    }
+  );
+
+  socket.on('updateValue', (values) => {
+    socket.to(socket.room).emit('valueUpdate', (values));
+  });
+
+  socket.on('updateSelect', ([row, col]) => {
+    socket.to(socket.room).emit('selectUpdate', [row, col, socket.id]);
   });
 
   socket.on('disconnect', () => {
-    console.log('A user disconnected');
+    // sockets leave rooms on disconnect
+    socket.to(socket.room).emit('goodbye', socket.id);
+    console.log('Disconnection: ' + socket.id)
 
-    // Remove this socket from the array
-    var newSockets = [];
-    for (var i = 0; i < sockets.length; i++) {
-      if (sockets[i].id !== socket.id) {
-        newSockets.push(sockets[i]);
+    if (io.sockets.adapter.rooms[socket.room] === undefined) {
+      const newRoomsList = [];
+      for (var i = 0; i < roomCodes.length; i++) {
+        if (roomCodes[i] !== socket.room) {
+          newRoomsList.push(roomCodes[i]);
+        }
       }
+      roomCodes = newRoomsList;
     }
-    sockets = newSockets;
-    socket.broadcast.emit('byeFriend', socket.id);
   });
 });
 
 http.listen(8000, () => {
   console.log('Listening on *:8000.');
 });
-
-
-colors = [
-  '#EEB9B9',
-  '#EED7B9',
-  '#EEECB9',
-  '#E0EEB9',
-  '#C4EEB9',
-  '#B9EED8',
-  '#B9EEEA',
-  '#B9D3EE',
-  '#B9BAEE',
-  '#D0B9EE',
-  '#E9B9EE'
-];
-
-function getNewColor() {
-  var newColor = colors.pop();
-  if (newColor === undefined) {
-    colors = [
-      '#EEB9B9',
-      '#EED7B9',
-      '#EEECB9',
-      '#E0EEB9',
-      '#C4EEB9',
-      '#B9EED8',
-      '#B9EEEA',
-      '#B9D3EE',
-      '#B9BAEE',
-      '#D0B9EE',
-      '#E9B9EE'
-    ];
-    newColor = colors.pop();
-  }
-  shuffle(colors);
-  return newColor;
-}
-
-
-function getNewId() {
-  // http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-}
-
-
-/**
- * Shuffles array in place.
- * @param {Array} a items An array containing the items.
- */
-function shuffle(a) {
-    var j, x, i;
-    for (i = a.length - 1; i > 0; i--) {
-        j = Math.floor(Math.random() * (i + 1));
-        x = a[i];
-        a[i] = a[j];
-        a[j] = x;
-    }
-    return a;
-}

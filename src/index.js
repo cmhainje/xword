@@ -3,7 +3,8 @@ import ReactDOM from 'react-dom';
 import openSocket from 'socket.io-client'
 import $ from 'jquery'
 
-import './index.css';
+import './game.css';
+import './home.css';
 
 
 // ====
@@ -50,13 +51,23 @@ function makeClueToCoordsMap(n, clueNumbers) {
 }
 
 var USER_COLOR = '#EED7B9';
-const CLUE_COLOR = '#C9F0EA';
+const CLUE_COLOR = '#EEEEEE';
 
 
 // ====
-// SERVER SET-UP
+// CONNECT TO SERVER
+const socket = openSocket('http://208.64.170.251:8000');
+socket.on('id', (id) => {
+  socket.id = id;
+})
 
-
+socket.friendsColors = new Map();
+socket.friendsNames = new Map();
+socket.on('newFriend', (data) => {
+  if (data[0] === socket.name) return;
+  socket.friendsColors.set(data[0], data[1]);
+  socket.friendsNames.set(data[0], data[2]);
+});
 
 
 
@@ -150,10 +161,29 @@ class Game extends React.Component {
       this.emptyBoard.push(row);
     }
 
-    this.state = {
-      squareValues: this.newEmptyBoard(""),
-      squareColors: this.newEmptyBoard("#FFFFFF"),
-    };
+    if (this.props.boardStatus === undefined) {
+      this.state = {
+        squareValues: this.newEmptyBoard(""),
+        squareColors: this.newEmptyBoard("#FFFFFF"),
+      };
+    }
+    else {
+      this.state = {
+        squareValues: this.props.boardStatus,
+        squareColors: this.newEmptyBoard("#FFFFFF"),
+      };
+    }
+
+    if (this.props.friendsCells === undefined) {
+      this.friendsCells = [];
+      this.friendMask = this.newEmptyBoard("");
+    }
+    else {
+      this.friendsCells = this.props.friendsCells;
+      this.friendMask = this.newEmptyBoard("");
+      this.remakeFriendMask();
+      this.state.squareColors = this.friendMask;
+    }
 
     this.selectedCell = {"row": -1, "col": -1};
     this.selectMask = this.newEmptyBoard(false);
@@ -161,8 +191,6 @@ class Game extends React.Component {
     this.selectedClue = {"number": 0, "across": true};
     this.clueMask = this.newEmptyBoard(false);
 
-    this.friendsCells = [];
-    this.friendMask = this.newEmptyBoard("");
 
     // Event listeners for keypresses
     document.addEventListener("keypress", (event) => {
@@ -177,65 +205,91 @@ class Game extends React.Component {
         this.handleBackspacePress();
     });
 
+
     // Server listeners for updates
-    this.props.socket.on('valueUpdate', (newValues) => {
-      this.setState((prevState, props) => {
-        return {
-          squareValues: newValues,
-          squareColors: prevState.squareColors,
-        };
+    if (socket !== undefined) {
+      socket.on('valueUpdate', (newValues) => {
+        this.setState((prevState, props) => {
+          return {
+            squareValues: newValues,
+            squareColors: prevState.squareColors,
+          };
+        });
       });
-    });
 
-    this.props.socket.on('selectUpdate', (data) => {
-      const [row, col, id] = data;
-      var found = false;
-      for (i = 0; i < this.friendsCells.length; i++) {
-        if (this.friendsCells[i].id === id) {
-          found = true;
-          this.friendsCells[i] = {"row": row, "col": col, "id": id};
+      socket.on('selectUpdate', (data) => {
+        const [row, col, id] = data;
+        var found = false;
+        for (i = 0; i < this.friendsCells.length; i++) {
+          if (this.friendsCells[i].id === id) {
+            found = true;
+            this.friendsCells[i] = {"row": row, "col": col, "id": id};
+            break;
+          }
         }
-      }
-      if (!found) {
-        this.friendsCells.push({"row": row, "col": col, "id": id});
-      }
-
-      var newFriendMask = this.newEmptyBoard("");
-      for (i = this.friendsCells.length - 1; i >= 0; i--) {
-        const row = this.friendsCells[i].row;
-        const col = this.friendsCells[i].col;
-        const color = this.props.socket.friends.get(this.friendsCells[i].id);
-
-        newFriendMask[row][col] = color;
-      }
-
-      this.friendMask = newFriendMask;
-      this.updateColors();
-    });
-
-
-    this.props.socket.on('byeFriend', (id) => {
-      this.props.socket.friends.delete(id);
-      var newFriendsCells = [];
-      for (i = 0; i < this.friendsCells.length; i++) {
-        if (this.friendsCells[i].id !== id) {
-          newFriendsCells.push(this.friendsCells[i]);
+        if (!found) {
+          this.friendsCells.push({"row": row, "col": col, "id": id});
         }
-      }
-      this.friendsCells = newFriendsCells;
 
-      var newFriendMask = this.newEmptyBoard("");
-      for (i = this.friendsCells.length - 1; i >= 0; i--) {
-        const row = this.friendsCells[i].row;
-        const col = this.friendsCells[i].col;
-        const color = this.props.socket.friends.get(this.friendsCells[i].id);
+        this.remakeFriendMask();
+        this.updateColors();
+      });
 
-        newFriendMask[row][col] = color;
-      }
+      socket.on('requestStatus', (id) => {
+        console.log('status requested by ' + id);
 
-      this.friendMask = newFriendMask;
-      this.updateColors();
-    });
+        const friendsCells = this.friendsCells;
+        if (this.selectedCell.row !== -1) {
+          friendsCells.push({
+            "row": this.selectedCell.row,
+            "col": this.selectedCell.col,
+            "id":  socket.id
+          });
+        }
+
+        var friendsColors = new Map(socket.friendsColors);
+        friendsColors.set(socket.id, socket.color);
+
+        var friendsNames = new Map(socket.friendsNames);
+        friendsNames.set(socket.id, socket.name);
+
+        socket.emit('currentStatus', ( {
+          "puzzleID": this.props.puzzle.id,
+          "boardStatus": this.props.squareValues,
+          "friendsCells": friendsCells,
+          "friendsColors": Array.from(friendsColors.entries()),
+          "friendsNames": Array.from(friendsNames.entries()),
+          "requestor": id
+        }));
+      });
+
+      socket.on('goodbye', (id) => {
+        socket.friendsColors.delete(id);
+        socket.friendsNames.delete(id);
+        var newFriendsCells = [];
+        for (i = 0; i < this.friendsCells.length; i++) {
+          if (this.friendsCells[i].id !== id) {
+            newFriendsCells.push(this.friendsCells[i]);
+          }
+        }
+        this.friendsCells = newFriendsCells;
+        this.remakeFriendMask();
+        this.updateColors();
+      });
+    }
+  }
+
+  remakeFriendMask() {
+    var newFriendMask = this.newEmptyBoard("");
+    for (var i = this.friendsCells.length - 1; i >= 0; i--) {
+      const row = this.friendsCells[i].row;
+      const col = this.friendsCells[i].col;
+      if (row === -1 || col === -1) { continue; }
+      const color = socket.friendsColors.get(this.friendsCells[i].id);
+
+      newFriendMask[row][col] = color;
+    }
+    this.friendMask = newFriendMask;
   }
 
   updateValue(row, col, newValue) {
@@ -249,7 +303,7 @@ class Game extends React.Component {
           squareColors: prevState.squareColors,
         };
       },
-      () => { this.props.socket.emit('updateValue', newValues); }
+      () => { socket.emit('updateValue', newValues); }
     );
   }
 
@@ -258,8 +312,8 @@ class Game extends React.Component {
     const col = this.selectedCell.col;
     this.updateValue(row, col, key.toUpperCase());
 
-    // If there is a clue selected, move selected cell forward along the clue direction
-    if (this.selectedClue.number !== 0) {
+    // If in the selected clue, move selected cell forward along the clue direction
+    if (this.selectedClue.number !== 0 && this.clueMask[row][col]) {
       if (this.selectedClue.across && col + 1 < this.props.puzzle.n && this.props.puzzle.squares[row][col+1] !== 1)
         this.updateSelectedCell(row, col + 1);
       else if (!this.selectedClue.across && row + 1 < this.props.puzzle.n && this.props.puzzle.squares[row+1][col] !== 1)
@@ -284,7 +338,8 @@ class Game extends React.Component {
   updateColors() {
     this.setState(
       (prevState, props) => {
-        var newColors = this.newEmptyBoard("#FFFFFF");
+        var newColors = this.newEmptyBoard("#FFFFFF")
+
         // Apply clue, friends, and select masks
         for (var i = 0; i < this.props.puzzle.n; i++) {
           for (var j = 0; j < this.props.puzzle.n; j++) {
@@ -317,10 +372,13 @@ class Game extends React.Component {
 
     this.updateColors();
 
-    this.props.socket.emit('updateSelect', [row, col]);
+    socket.emit('updateSelect', [row, col]);
   }
 
   handleArrowKeyPress(keyCode) {
+
+    if (this.selectedCell.row === -1) { return; }
+
     const oldRow = this.selectedCell.row;
     const oldCol = this.selectedCell.col;
     var newRow, newCol;
@@ -362,7 +420,7 @@ class Game extends React.Component {
       return;
     }
 
-    const coords = this.puzzle.clueToCoords.get(parseInt(number));
+    const coords = this.props.puzzle.clueToCoords.get(parseInt(number));
     const row = coords.row;
     const col = coords.col;
 
@@ -392,6 +450,28 @@ class Game extends React.Component {
   }
 
   render() {
+    const colors = [];
+    const names = [];
+
+    colors.push(socket.color);
+    names.push(socket.name);
+
+    socket.friendsColors.forEach((color, id) => {colors.push(color);});
+    socket.friendsNames.forEach((name, id) => {names.push(name);});
+
+    const partyPeople = [];
+    for (var i = 0; i < colors.length; i++) {
+      partyPeople.push(
+        <div
+          className="friend-color"
+          style={{backgroundColor: colors[i]}}
+          key={i}
+        ></div>,
+        names[i],
+        <br />
+      );
+    }
+
     return (
       <div className="game">
         <div className="heading">
@@ -425,10 +505,243 @@ class Game extends React.Component {
         <div className="party-container">
           <h1>Party</h1>
           <p>
-            This is where I will put info about people who are connected to the server.
+            Room code: {this.props.roomCode}
           </p>
+          {partyPeople}
+
         </div>
       </div>
+    );
+  }
+}
+
+
+class StartForm extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      name: '',
+      puzzle: '2019_12_08_Andrew_White',
+      color: '#EEB9B9',
+      roomCode: '',
+      makeRoom: false,
+      connected: false,
+    };
+
+    socket.on('connected!', () => {
+      this.setState((prevState, props) => {
+        var newState = prevState;
+        newState.connected = true;
+        return newState;
+      });
+    });
+
+    this.handleNameChange = this.handleNameChange.bind(this);
+    this.handlePuzzleChange = this.handlePuzzleChange.bind(this);
+    this.handleColorChange = this.handleColorChange.bind(this);
+    this.handleRoomCodeChange = this.handleRoomCodeChange.bind(this);
+    this.handleMakeRoomChange = this.handleMakeRoomChange.bind(this);
+    this.handleSubmit = this.handleSubmit.bind(this);
+  }
+
+  handleNameChange(event) {
+    const newval = event.target.value;
+    this.setState(
+      (prevState, props) => {
+        var newState = prevState;
+        newState.name = newval;
+        return newState;
+      }
+    );
+  }
+
+  handleRoomCodeChange(event) {
+    const newval = event.target.value;
+    this.setState(
+      (prevState, props) => {
+        var newState = prevState;
+        newState.roomCode = newval;
+        return newState;
+      }
+    );
+  }
+
+  handlePuzzleChange(event) {
+    const newval = event.target.value;
+    this.setState(
+      (prevState, props) => {
+        var newState = prevState;
+        newState.puzzle = newval;
+        return newState;
+      }
+    );
+  }
+
+  handleColorChange(event) {
+    const newval = event.target.value;
+    this.setState(
+      (prevState, props) => {
+        var newState = prevState;
+        newState.color = newval;
+        return newState;
+      }
+    );
+  }
+
+  handleMakeRoomChange(event) {
+    this.setState(
+      (prevState, props) => {
+        var newState = prevState;
+        newState.makeRoom = !prevState.makeRoom;
+        return newState;
+      },
+      () => {
+        if (this.state.makeRoom)
+          document.getElementById('puzzleSelect').style.display = 'inline-block';
+        else
+          document.getElementById('puzzleSelect').style.display = 'none';
+      }
+    );
+  }
+
+  handleSubmit(event) {
+    if (this.state.name === '') {
+      alert('Name is required.');
+      event.preventDefault();
+      return;
+    }
+    if (this.state.roomCode === '') {
+      alert('Room code is required.');
+      event.preventDefault();
+      return;
+    }
+
+    socket.name = this.state.name;
+    socket.color = this.state.color;
+    USER_COLOR = socket.color;
+    socket.emit('userInfo', [socket.name, socket.color]);
+
+    if (this.state.makeRoom) {
+      socket.emit('makeRoom', [this.state.roomCode, this.state.puzzle]);
+      socket.on('cantMakeRoom', () => { this.handleMakeIssue(); });
+      socket.on('madeRoom', () => {
+        this.props.onSubmit(this.state.puzzle, undefined, undefined, this.state.roomCode);
+      });
+    }
+    else {
+      socket.emit('joinRoom', this.state.roomCode);
+      socket.on('cantJoinRoom', () => { this.handleJoinIssue(); });
+
+      var received = false;
+      socket.on('status', (data) => {
+        if (received) { return; }
+        received = true;
+        socket.friendsColors = new Map(data.friendsColors);
+        socket.friendsNames = new Map(data.friendsNames);
+        this.props.onSubmit(data.puzzleID, data.boardStatus, data.friendsCells, this.state.roomCode);
+      });
+    }
+
+    event.preventDefault();
+  }
+
+  handleMakeIssue() {
+    alert('Room code already in use. Please try another.');
+  }
+
+  handleJoinIssue() {
+    alert('Room doesn\'t exist. Please try a different room code.');
+  }
+
+  render() {
+    return (
+
+      <div className="startForm">
+
+        <h1>XWORD</h1>
+        <hr />
+
+        <div className="server-status">
+          <p style={{display: 'inline-block'}}><i>
+            {this.state.connected ? "Connected to server." : "Not connected to server."}
+          </i></p>
+          <div className="server-status-box" style={{backgroundColor: this.state.connected ? '#C4EEB9' : '#EEB9B9'}}></div>
+        </div>
+
+
+        <form onSubmit={this.handleSubmit}>
+
+          <div className="form-row">
+            <label>
+              Name
+            </label>
+            <div className="input">
+              <input type="text" className="textbox" value={this.state.name} onChange={this.handleNameChange} />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <label>
+              Color
+              <span className="color-box" style={{backgroundColor: this.state.color}}></span>
+            </label>
+            <div className="input">
+              <select value={this.state.color} onChange={this.handleColorChange}>
+                <option value='#EEB9B9'> red </option>
+                <option value='#EED7B9'> orange </option>
+                <option value='#EEECB9'> yellow </option>
+                <option value='#E0EEB9'> yellow-green </option>
+                <option value='#C4EEB9'> green </option>
+                <option value='#B9EED8'> teal </option>
+                <option value='#B9EEEA'> cyan </option>
+                <option value='#B9D3EE'> blue </option>
+                <option value='#B9BAEE'> purple </option>
+                <option value='#D0B9EE'> lavender </option>
+                <option value='#E9B9EE'> pink </option>
+              </select>
+            </div>
+          </div>
+
+          <div className="form-row">
+            <label>
+              Make a room?
+            </label>
+            <div className="input">
+              <input type="checkbox" onChange={this.handleMakeRoomChange}></input>
+            </div>
+          </div>
+
+          <div id="puzzleSelect" style={ {display: "none"} } className="form-row">
+            <label>
+              Crossword
+            </label>
+            <div className="input">
+              <select value={this.state.puzzle} onChange={this.handlePuzzleChange}>
+                <option value="2019_12_08_Andrew_White">Nassau Weekly: December 8, 2019 by Andrew White</option>
+                <option value="2020_02_16_Andrew_White">Nassau Weekly: February 16, 2020 by Andrew White</option>
+                <option value="2020_02_23_Andrew_White">Nassau Weekly: February 23, 2020 by Andrew White</option>
+                <option value="2020_03_01_Andrew_White">Nassau Weekly: March 1, 2020 by Andrew White and Reis White</option>
+                <option value="2020_03_08_Andrew_White">Nassau Weekly: March 3, 2020 by Andrew White</option>
+                <option value="2020_05_05_Andrew_White">Nassau Weekly: May 5, 2020 by Andrew White</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="form-row">
+            <label>
+              Room code
+            </label>
+            <div className="input">
+              <input type="text" className="textbox" value={this.state.roomCode} onChange={this.handleRoomCodeChange} />
+            </div>
+          </div>
+
+          <div className="submit-btn-row">
+            <input type="submit" className="submit-btn" value="Play" />
+          </div>
+        </form>
+      </div>
+
     );
   }
 }
@@ -439,26 +752,13 @@ class Home extends React.Component {
     super(props);
     this.state = {
       gameVisible: false,
-      puzzle: {}
+      puzzle: {},
     };
-
-    this.loadGame = this.loadGame.bind(this);
-
-    this.socket = openSocket('http://208.64.170.251:8000');
-    this.socket.on('color', (color) => {
-      this.socket.color = color;
-      USER_COLOR = this.socket.color;
-    });
-    this.socket.on('id', (id) => { this.socket.id = id; });
-
-    this.socket.friends = new Map();
-    this.socket.on('newFriend', (data) => {
-      if (data[0] === this.socket.id) return;
-      this.socket.friends.set(data[0], data[1]);
-    });
   }
 
-  loadGame(puzzleURL) {
+  loadGame(puzzleID) {
+    var puzzleURL = "puzzles/" + puzzleID + ".json";
+
     $.getJSON(puzzleURL, (puzzleData) => {
       const clueNumbers = getClueNumbers(puzzleData);
       const clueToCoords = makeClueToCoordsMap(puzzleData.puzzleSquares.length, clueNumbers);
@@ -474,26 +774,34 @@ class Home extends React.Component {
         "n":       puzzleData.puzzleSquares.length,
         "clueNumbers": clueNumbers,
         "clueToCoords": clueToCoords,
+        "id": puzzleID
       };
 
-      this.setState({ gameVisible: true, puzzle: PUZZLE });
+      this.setState(
+        (prevState, props) => {
+          return {
+            gameVisible: true,
+            puzzle: PUZZLE
+          };
+        }
+      );
     });
+  }
+
+  handleFormSubmit(puzzleID, boardStatus, friendsCells, roomCode) {
+    this.boardStatus = boardStatus;
+    this.friendsCells = friendsCells;
+    this.roomCode = roomCode;
+    this.loadGame(puzzleID);
   }
 
   render() {
     if (this.state.gameVisible) {
-      return <Game puzzle={this.state.puzzle} socket={this.socket} />;
+      return <Game puzzle={this.state.puzzle} boardStatus={this.boardStatus} friendsCells={this.friendsCells} roomCode={this.roomCode}/>;
     }
-    return (
-      <div className="home-menu">
-        <h1>Xword home</h1>
-
-        <ul>
-          <li onClick={() => {this.loadGame('puzzles/2020_03_08_Andrew_White.json')}}>March 8th, 2020 by Andrew White</li>
-          <li onClick={() => {this.loadGame('puzzles/2020_05_05_Andrew_White.json')}}>May 5th, 2020 by Andrew White</li>
-        </ul>
-      </div>
-    );
+    return <StartForm onSubmit={
+      (puzzleID, boardStatus, friendsCells, roomCode) => {this.handleFormSubmit(puzzleID, boardStatus, friendsCells, roomCode);}
+    }/>
   }
 }
 
