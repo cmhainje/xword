@@ -2,7 +2,7 @@
   "title":  "December 8th, 2019 Crossword",
   "author": "Andrew White",
   "paper":  "Nassau Weekly",
-  "date":   "December 8, 2020",
+  "date":   "December 8, 2019",
 
   "puzzleSquares": [
     [0,0,0,1,0,0,0,0,0,1,0,0,0,0,0],
@@ -19,7 +19,7 @@
     [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
     [0,0,0,0,0,1,0,0,0,0,0,1,0,0,0],
     [0,0,0,0,0,1,0,0,0,0,0,1,0,0,0],
-    [0,0,0,0,0,1,0,0,0,0,0,1,0,0,0],
+    [0,0,0,0,0,1,0,0,0,0,0,1,0,0,0]
   ],
 
   "acrossClues": [
@@ -58,7 +58,7 @@
     {"number": "62", "clue": "Templeton or Remy, e.g."},
     {"number": "63", "clue": "Defeated by a hair"},
     {"number": "64", "clue": "Recharged, so to speak"},
-    {"number": "65", "clue": "Dallas to Nashville dir."},
+    {"number": "65", "clue": "Dallas to Nashville dir."}
   ],
 
   "downClues": [

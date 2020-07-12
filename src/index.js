@@ -521,7 +521,7 @@ class StartForm extends React.Component {
     super(props);
     this.state = {
       name: '',
-      puzzle: '2019_12_08_Andrew_White',
+      puzzle: '2020_05_05_Andrew_White',
       color: '#EEB9B9',
       roomCode: '',
       makeRoom: false,
@@ -717,6 +717,9 @@ class StartForm extends React.Component {
             </label>
             <div className="input">
               <select value={this.state.puzzle} onChange={this.handlePuzzleChange}>
+                <option value="2019_10_20_Andrew_White">Nassau Weekly: October 10, 2019 by Andrew White</option>
+                <option value="2019_11_17_Andrew_White">Nassau Weekly: November 17, 2019 by Andrew White</option>
+                <option value="2019_11_24_Andrew_White">Nassau Weekly: November 24, 2019 by Andrew White</option>
                 <option value="2019_12_08_Andrew_White">Nassau Weekly: December 8, 2019 by Andrew White</option>
                 <option value="2020_02_16_Andrew_White">Nassau Weekly: February 16, 2020 by Andrew White</option>
                 <option value="2020_02_23_Andrew_White">Nassau Weekly: February 23, 2020 by Andrew White</option>
