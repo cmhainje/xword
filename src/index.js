@@ -50,6 +50,56 @@ function makeClueToCoordsMap(n, clueNumbers) {
   return map;
 }
 
+function makeClueArray(n, clueNumbers, puzzleData, across) {
+  var clues = []
+  var current = 0
+  var i, j;
+
+  if (across) {
+    for (i = 0; i < n; i++) {
+      const row = [];
+      for (j = 0; j < n; j++) {
+        if (puzzleData.puzzleSquares[i][j] === 1) {
+          row.push(0);
+        } else {
+          if (j === 0 || puzzleData.puzzleSquares[i][j-1] === 1) {
+            current = clueNumbers[i][j];
+          }
+          row.push(current);
+        }
+      }
+      clues.push(row);
+    }
+  }
+  else {
+    var clues_T = [];
+    for (j = 0; j < n; j++) {
+      const col = [];
+      for (i = 0; i < n; i++) {
+        if (puzzleData.puzzleSquares[i][j] === 1) {
+          col.push(0);
+        } else {
+          if (i === 0 || puzzleData.puzzleSquares[i-1][j] === 1) {
+            current = clueNumbers[i][j];
+          }
+          col.push(current);
+        }
+      }
+      clues_T.push(col);
+    }
+
+    for (i = 0; i < n; i++) {
+      const row = [];
+      for (j = 0; j < n; j++) {
+        row.push(clues_T[j][i]);
+      }
+      clues.push(row);
+    }
+  }
+
+  return clues;
+}
+
 var USER_COLOR = '#EED7B9';
 const CLUE_COLOR = '#EEEEEE';
 
@@ -126,7 +176,7 @@ class Clues extends React.Component {
         className="clue"
         key={number}
         onClick={() => this.props.handleClick(number)}
-        style={ (this.props.selectedClue === number) ? { backgroundColor: CLUE_COLOR } : { backgroundColor: "white" } }
+        style={ (this.props.selectedClue == number) ? { backgroundColor: CLUE_COLOR } : { backgroundColor: "white" } }
       >
         {number}: {text}
       </li>
@@ -193,16 +243,14 @@ class Game extends React.Component {
 
 
     // Event listeners for keypresses
-    document.addEventListener("keypress", (event) => {
-      this.handleKeyPress(event.key);
-    });
-
     document.addEventListener("keydown", (event) => {
-      var c = event.keyCode;
-      if (c === 37 || c === 38 || c=== 39 || c === 40)
-        this.handleArrowKeyPress(c);
-      else if (c === 8)
+      var key = event.key;
+      if (key === "ArrowDown" || key === "ArrowUp" || key === "ArrowLeft" || key === "ArrowRight")
+        this.handleArrowKeyPress(key);
+      else if (key === "Backspace")
         this.handleBackspacePress();
+      else if (key.length === 1)
+        this.handleKeyPress(key);
     });
 
 
@@ -293,6 +341,7 @@ class Game extends React.Component {
   }
 
   updateValue(row, col, newValue) {
+    if (this.selectedCell.row === -1) { return; }
     var newValues = this.state.squareValues.map(x => x);
     newValues[row][col] = newValue;
 
@@ -308,6 +357,9 @@ class Game extends React.Component {
   }
 
   handleKeyPress(key) {
+    if (key.toUpperCase() == key.toLowerCase())
+      return;
+
     const row = this.selectedCell.row;
     const col = this.selectedCell.col;
     this.updateValue(row, col, key.toUpperCase());
@@ -375,7 +427,33 @@ class Game extends React.Component {
     socket.emit('updateSelect', [row, col]);
   }
 
-  handleArrowKeyPress(keyCode) {
+  handleClick(row, col) {
+    // if they clicked on the selected cell, flip across/down
+    if (row === this.selectedCell.row && col == this.selectedCell.col) {
+      if (this.selectedClue.across) {
+        const newNum = this.props.puzzle.clueDownArray[row][col];
+        this.updateSelectedClue(newNum, !this.selectedClue.across);
+      } else {
+        const newNum = this.props.puzzle.clueAcrossArray[row][col];
+        this.updateSelectedClue(newNum, !this.selectedClue.across);
+      }
+    }
+
+    // if they clicked outside the current clue, update clue
+    else if (!this.clueMask[row][col]){
+      if (this.selectedClue.across) {
+        const newNum = this.props.puzzle.clueAcrossArray[row][col];
+        this.updateSelectedClue(newNum, this.selectedClue.across);
+      } else {
+        const newNum = this.props.puzzle.clueDownArray[row][col];
+        this.updateSelectedClue(newNum, this.selectedClue.across);
+      }
+    }
+
+    this.updateSelectedCell(row, col);
+  }
+
+  handleArrowKeyPress(key) {
 
     if (this.selectedCell.row === -1) { return; }
 
@@ -383,20 +461,20 @@ class Game extends React.Component {
     const oldCol = this.selectedCell.col;
     var newRow, newCol;
 
-    switch (keyCode) {
-      case 37: // left arrow
+    switch (key) {
+      case "ArrowLeft": // left arrow
         newRow = oldRow;
         newCol = (oldCol - 1 + this.props.puzzle.n) % this.props.puzzle.n;
         break;
-      case 38: // up arrow
+      case "ArrowUp": // up arrow
         newRow = (oldRow - 1 + this.props.puzzle.n) % this.props.puzzle.n;
         newCol = oldCol;
         break;
-      case 39: // right arrow
+      case "ArrowRight": // right arrow
         newRow = oldRow;
         newCol = (oldCol + 1) % this.props.puzzle.n;
         break;
-      case 40: // down arrow
+      case "ArrowDown": // down arrow
         newRow = (oldRow + 1) % this.props.puzzle.n;
         newCol = oldCol;
         break;
@@ -413,12 +491,8 @@ class Game extends React.Component {
   updateSelectedClue(number, across) {
     var newClueMask = this.newEmptyBoard(false);
 
-    if (this.selectedClue.number === number && this.selectedClue.across === across) {
-      this.selectedClue = {"number": 0, "across": true};
-      this.clueMask = newClueMask;
-      this.updateColors();
+    if (this.selectedClue.number === number && this.selectedClue.across === across)
       return;
-    }
 
     const coords = this.props.puzzle.clueToCoords.get(parseInt(number));
     const row = coords.row;
@@ -436,8 +510,9 @@ class Game extends React.Component {
     this.selectedClue = {"number": number, "across": across};
     this.clueMask = newClueMask;
 
-    // Move selected cell to start of clue
-    this.updateSelectedCell(row, col);
+    if (this.selectedCell.row != -1 && !this.clueMask[this.selectedCell.row][this.selectedCell.col]) {
+      this.updateSelectedCell(row, col);
+    }
 
     // Push the update to the colors
     this.updateColors();
@@ -489,7 +564,7 @@ class Game extends React.Component {
               puzzle={this.props.puzzle}
               squareValues={this.state.squareValues}
               squareColors={this.state.squareColors}
-              handleClick={(row, col) => {this.updateSelectedCell(row, col)}}
+              handleClick={(row, col) => {this.handleClick(row, col)}}
             />
           </div>
           <div className="clues-and-info">
@@ -785,6 +860,8 @@ class Home extends React.Component {
     $.getJSON(puzzleURL, (puzzleData) => {
       const clueNumbers = getClueNumbers(puzzleData);
       const clueToCoords = makeClueToCoordsMap(puzzleData.puzzleSquares.length, clueNumbers);
+      const clueAcrossArray = makeClueArray(puzzleData.puzzleSquares.length, clueNumbers, puzzleData, true);
+      const clueDownArray   = makeClueArray(puzzleData.puzzleSquares.length, clueNumbers, puzzleData, false);
 
       const PUZZLE = {
         "title":   puzzleData.title,
@@ -797,6 +874,8 @@ class Home extends React.Component {
         "n":       puzzleData.puzzleSquares.length,
         "clueNumbers": clueNumbers,
         "clueToCoords": clueToCoords,
+        "clueAcrossArray": clueAcrossArray,
+        "clueDownArray": clueDownArray,
         "id": puzzleID
       };
 
