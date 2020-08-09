@@ -12,16 +12,48 @@
 
 
 
+.nav {
+  padding: 10px 0px;
+  margin: 0 auto;
+  width: fit-content;
+  min-width: 720px;
+
+  font-size: 24px;
+  font-weight: 400;
+}
+
+.nav a {
+  text-decoration: none;
+  color: inherit;
+}
+
+
+
 .startForm {
   padding: 20px;
   width: 400px;
-  margin: 0px auto;
+  margin: 20px auto;
+}
+
+.startForm p {
+  margin: 0px;
+  text-align: center;
 }
 
 .startForm h1 {
-  margin: 10px 0px;
+  margin-top: 0px;
+  margin-bottom: 10px;
   text-align: center;
   font-size: 48px;
+  line-height: 48px;
+}
+
+.startForm img {
+  padding-right: 10px;
+}
+
+.startForm hr {
+  border: 1px solid black;
 }
 
 .server-status {
@@ -68,8 +100,14 @@ form {
   width: 94%;
 }
 
-select {
+select, input {
   width: 200px;
+  border: solid 2px black;
+  font-family: Inter, "Helvetica Neue", sans-serif;
+}
+
+input:active {
+  border-radius: 0px;
 }
 
 .color-box {
@@ -88,6 +126,12 @@ select {
 
 .submit-btn {
   margin: 10px auto;
+  padding: 5px 10px;
+  width: fit-content;
+  border: solid 2px black;
+
   text-align: center;
-  font-size: 20px;
+  font-size: 18px;
+  font-weight: 400;
+  background-color: #e0e0e0;
 }

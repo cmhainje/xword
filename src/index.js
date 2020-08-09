@@ -473,42 +473,53 @@ class Game extends React.Component {
     }
 
     return (
-      <div className="game">
+      <div>
+        <div className="brand">
+          <img src="logo.svg" alt="logo" width="22px"></img>
+          <a href="/">Xword</a>
+          <p><i>by Connor Hainje</i></p>
+        </div>
         <div className="heading">
           <h1>{this.props.puzzle.title}</h1>
           <p>{this.props.puzzle.author} | {this.props.puzzle.paper} | {this.props.puzzle.date}</p>
         </div>
-        <div className="game-board">
-          <Board
-            puzzle={this.props.puzzle}
-            squareValues={this.state.squareValues}
-            squareColors={this.state.squareColors}
-            handleClick={(row, col) => {this.updateSelectedCell(row, col)}}
-          />
-        </div>
-        <div className="clue-container">
-          <h2>Across</h2>
-          <Clues
-            handleClick={(number) => {this.updateSelectedClue(number, true)}}
-            clues={this.props.puzzle.across}
-            selectedClue={this.selectedClue.across ? this.selectedClue.number : 0}
-          />
-        </div>
-        <div className="clue-container">
-          <h2>Down</h2>
-          <Clues
-            handleClick={(number) => {this.updateSelectedClue(number, false)}}
-            clues={this.props.puzzle.down}
-            selectedClue={this.selectedClue.across ? 0 : this.selectedClue.number}
-          />
-        </div>
-        <div className="party-container">
-          <h1>Party</h1>
-          <p>
-            Room code: {this.props.roomCode}
-          </p>
-          {partyPeople}
+        <div className="game">
+          <div className="game-board">
+            <Board
+              puzzle={this.props.puzzle}
+              squareValues={this.state.squareValues}
+              squareColors={this.state.squareColors}
+              handleClick={(row, col) => {this.updateSelectedCell(row, col)}}
+            />
+          </div>
+          <div className="clues-and-info">
+            <div className="clue-boxes">
+              <div className="clue-container">
+                <h2>Across</h2>
+                <Clues
+                  handleClick={(number) => {this.updateSelectedClue(number, true)}}
+                  clues={this.props.puzzle.across}
+                  selectedClue={this.selectedClue.across ? this.selectedClue.number : 0}
+                />
+              </div>
+              <div className="clue-container">
+                <h2>Down</h2>
+                <Clues
+                  handleClick={(number) => {this.updateSelectedClue(number, false)}}
+                  clues={this.props.puzzle.down}
+                  selectedClue={this.selectedClue.across ? 0 : this.selectedClue.number}
+                />
+              </div>
+            </div>
+            <div className="party-container">
+              <h1>Party</h1>
+              <p>
+                Room code: {this.props.roomCode}
+              </p>
+              {partyPeople}
 
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -655,94 +666,103 @@ class StartForm extends React.Component {
 
   render() {
     return (
+    
+      <div>
 
-      <div className="startForm">
-
-        <h1>XWORD</h1>
-        <hr />
-
-        <div className="server-status">
-          <p style={{display: 'inline-block'}}><i>
-            {this.state.connected ? "Connected to server." : "Not connected to server."}
-          </i></p>
-          <div className="server-status-box" style={{backgroundColor: this.state.connected ? '#C4EEB9' : '#EEB9B9'}}></div>
+        <div className="nav">
+          <a href="#">cmhainje</a> / <a href="#"><b>Xword</b></a>
         </div>
 
+        <div className="startForm">
 
-        <form onSubmit={this.handleSubmit}>
+          <p>Welcome to</p>
 
-          <div className="form-row">
-            <label>
-              Name
-            </label>
-            <div className="input">
-              <input type="text" className="textbox" value={this.state.name} onChange={this.handleNameChange} />
+          <h1><img src="logo.svg" alt="logo" width="36px"></img>Xword</h1>
+          <hr />
+
+          <div className="server-status">
+            <p style={{display: 'inline-block'}}><i>
+              {this.state.connected ? "Connected to server." : "Not connected to server."}
+            </i></p>
+            <div className="server-status-box" style={{backgroundColor: this.state.connected ? '#C4EEB9' : '#EEB9B9'}}></div>
+          </div>
+
+
+          <form onSubmit={this.handleSubmit}>
+
+            <div className="form-row">
+              <label>
+                Name
+              </label>
+              <div className="input">
+                <input type="text" className="textbox" value={this.state.name} onChange={this.handleNameChange} />
+              </div>
             </div>
-          </div>
 
-          <div className="form-row">
-            <label>
-              Color
-              <span className="color-box" style={{backgroundColor: this.state.color}}></span>
-            </label>
-            <div className="input">
-              <select value={this.state.color} onChange={this.handleColorChange}>
-                <option value='#EEB9B9'> red </option>
-                <option value='#EED7B9'> orange </option>
-                <option value='#EEECB9'> yellow </option>
-                <option value='#E0EEB9'> yellow-green </option>
-                <option value='#C4EEB9'> green </option>
-                <option value='#B9EED8'> teal </option>
-                <option value='#B9EEEA'> cyan </option>
-                <option value='#B9D3EE'> blue </option>
-                <option value='#B9BAEE'> purple </option>
-                <option value='#D0B9EE'> lavender </option>
-                <option value='#E9B9EE'> pink </option>
-              </select>
+            <div className="form-row">
+              <label>
+                Color
+                <span className="color-box" style={{backgroundColor: this.state.color}}></span>
+              </label>
+              <div className="input">
+                <select value={this.state.color} onChange={this.handleColorChange}>
+                  <option value='#EEB9B9'> red </option>
+                  <option value='#EED7B9'> orange </option>
+                  <option value='#EEECB9'> yellow </option>
+                  <option value='#E0EEB9'> yellow-green </option>
+                  <option value='#C4EEB9'> green </option>
+                  <option value='#B9EED8'> teal </option>
+                  <option value='#B9EEEA'> cyan </option>
+                  <option value='#B9D3EE'> blue </option>
+                  <option value='#B9BAEE'> purple </option>
+                  <option value='#D0B9EE'> lavender </option>
+                  <option value='#E9B9EE'> pink </option>
+                </select>
+              </div>
             </div>
-          </div>
 
-          <div className="form-row">
-            <label>
-              Make a room?
-            </label>
-            <div className="input">
-              <input type="checkbox" onChange={this.handleMakeRoomChange}></input>
+            <div className="form-row">
+              <label>
+                Make a room?
+              </label>
+              <div className="input">
+                <input type="checkbox" onChange={this.handleMakeRoomChange}></input>
+              </div>
             </div>
-          </div>
 
-          <div id="puzzleSelect" style={ {display: "none"} } className="form-row">
-            <label>
-              Crossword
-            </label>
-            <div className="input">
-              <select value={this.state.puzzle} onChange={this.handlePuzzleChange}>
-                <option value="2019_10_20_Andrew_White">Nassau Weekly: October 10, 2019 by Andrew White</option>
-                <option value="2019_11_17_Andrew_White">Nassau Weekly: November 17, 2019 by Andrew White</option>
-                <option value="2019_11_24_Andrew_White">Nassau Weekly: November 24, 2019 by Andrew White</option>
-                <option value="2019_12_08_Andrew_White">Nassau Weekly: December 8, 2019 by Andrew White</option>
-                <option value="2020_02_16_Andrew_White">Nassau Weekly: February 16, 2020 by Andrew White</option>
-                <option value="2020_02_23_Andrew_White">Nassau Weekly: February 23, 2020 by Andrew White</option>
-                <option value="2020_03_01_Andrew_White">Nassau Weekly: March 1, 2020 by Andrew White and Reis White</option>
-                <option value="2020_03_08_Andrew_White">Nassau Weekly: March 8, 2020 by Andrew White</option>
-                <option value="2020_05_05_Andrew_White">Nassau Weekly: May 5, 2020 by Andrew White</option>
-              </select>
+            <div id="puzzleSelect" style={ {display: "none"} } className="form-row">
+              <label>
+                Crossword
+              </label>
+              <div className="input">
+                <select value={this.state.puzzle} onChange={this.handlePuzzleChange}>
+                  <option value="2019_10_20_Andrew_White">Nassau Weekly: October 10, 2019 by Andrew White</option>
+                  <option value="2019_11_17_Andrew_White">Nassau Weekly: November 17, 2019 by Andrew White</option>
+                  <option value="2019_11_24_Andrew_White">Nassau Weekly: November 24, 2019 by Andrew White</option>
+                  <option value="2019_12_08_Andrew_White">Nassau Weekly: December 8, 2019 by Andrew White</option>
+                  <option value="2020_02_16_Andrew_White">Nassau Weekly: February 16, 2020 by Andrew White</option>
+                  <option value="2020_02_23_Andrew_White">Nassau Weekly: February 23, 2020 by Andrew White</option>
+                  <option value="2020_03_01_Andrew_White">Nassau Weekly: March 1, 2020 by Andrew White and Reis White</option>
+                  <option value="2020_03_08_Andrew_White">Nassau Weekly: March 8, 2020 by Andrew White</option>
+                  <option value="2020_05_05_Andrew_White">Nassau Weekly: May 5, 2020 by Andrew White</option>
+                </select>
+              </div>
             </div>
-          </div>
 
-          <div className="form-row">
-            <label>
-              Room code
-            </label>
-            <div className="input">
-              <input type="text" className="textbox" value={this.state.roomCode} onChange={this.handleRoomCodeChange} />
+            <div className="form-row">
+              <label>
+                Room code
+              </label>
+              <div className="input">
+                <input type="text" className="textbox" value={this.state.roomCode} onChange={this.handleRoomCodeChange} />
+              </div>
             </div>
-          </div>
 
-          <div className="submit-btn-row">
-            <input type="submit" className="submit-btn" value="Play" />
-          </div>
-        </form>
+            <div className="submit-btn-row">
+              <input type="submit" className="submit-btn" value="Play" />
+            </div>
+          </form>
+        </div>
       </div>
 
     );

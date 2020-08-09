@@ -1,6 +1,5 @@
 body {
   margin: 0;
-  padding-left: 10px;
   font-family: 'Inter', 'Helvetica Neue', sans-serif;
 }
 
@@ -36,10 +35,13 @@ body {
 
 .row {
   width: fit-content;
+  min-width: 616px;
   display: block;
   padding: 0;
   margin: 0;
 }
+
+.game { padding-left: 10px; }
 
 .game-board {
   padding: 10px;
@@ -48,10 +50,16 @@ body {
   float: left;
 }
 
+.clue-boxes {
+  float: left;
+  min-width: 350px;
+}
+
 .clue-container {
   padding: 2px 10px 0px 10px;
   float: left;
   width: calc((100vw - 635px - 100px) / 2);
+  min-width: 140px;
   height: 400px;
 
   border: 1px solid black;
@@ -78,10 +86,12 @@ body {
   cursor: default;
 }
 
+.clues-and-info { min-width: 631px; }
 
 .party-container {
   float: left;
   width: calc(100vw - 635px - 68px);
+  min-width: 249px;
   height: 190px;
   margin: 9px 5px;
   padding: 2px 10px 0px 10px;
@@ -96,14 +106,44 @@ body {
 
 .heading {
   padding: 10px;
+  padding-left: 20px;
 }
 
-.heading h1 {
+.heading h1, p {
   margin: 0;
 }
 
-.heading p {
+.brand {
   margin: 0;
+  padding: 10px;
+  padding-left: 20px;
+  min-width: 616px;
+  background-color: #e0e0e0;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+}
+
+.brand img {
+  padding-right: 5px;
+}
+
+.brand a {
+  font-size: 28px;
+  font-weight: 700;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.brand p {
+  display: inline;
+  padding-left: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .friend-color {
