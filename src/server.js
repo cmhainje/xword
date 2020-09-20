@@ -81,5 +81,5 @@ io.on('connection', (socket) => {
 });
 
 http.listen(8000, () => {
-  console.log('Listening on *:8000.');
+  console.log('Listening on port 8000.');
 });

@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import openSocket from 'socket.io-client'
-import $ from 'jquery'
+import io from 'socket.io-client';
+import $ from 'jquery';
 
 import './game.css';
 import './home.css';
@@ -107,8 +107,10 @@ const CLUE_COLOR = '#EEEEEE';
 // ====
 // CONNECT TO SERVER
 // const socket = openSocket('http://208.64.170.251:8000');
-const socket = openSocket('http://localhost:8000');
+// const socket = openSocket('http://localhost:8000');
 // const socket = openSocket('http://xword-server.herokuapp.com/:8000');
+
+const socket = io();
 socket.on('id', (id) => {
   socket.id = id;
 })
