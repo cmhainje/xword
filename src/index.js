@@ -106,7 +106,9 @@ const CLUE_COLOR = '#EEEEEE';
 
 // ====
 // CONNECT TO SERVER
-const socket = openSocket('http://208.64.170.251:8000');
+// const socket = openSocket('http://208.64.170.251:8000');
+const socket = openSocket('http://127.0.0.1:8000');
+// const socket = openSocket('http://xword-server.herokuapp.com/:8000');
 socket.on('id', (id) => {
   socket.id = id;
 })
@@ -510,7 +512,7 @@ class Game extends React.Component {
     this.selectedClue = {"number": number, "across": across};
     this.clueMask = newClueMask;
 
-    if (this.selectedCell.row != -1 && !this.clueMask[this.selectedCell.row][this.selectedCell.col]) {
+    if (this.selectedCell.row == -1 || !this.clueMask[this.selectedCell.row][this.selectedCell.col]) {
       this.updateSelectedCell(row, col);
     }
 
