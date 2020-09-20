@@ -9,9 +9,11 @@
     "elliptic": "^6.5.3",
     "jquery": "^3.5.1",
     "lodash": "^4.17.19",
+    "node-forge": "^0.10.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-scripts": "3.4.1",
+    "serialize-javascript": "^3.1.0",
     "socket.io": "^2.3.0",
     "websocket-extensions": "^0.1.4"
   },
