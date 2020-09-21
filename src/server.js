@@ -1,9 +1,10 @@
 const PORT = process.env.PORT || 8000
 
-var app = require('express')();
-var io = require('socket.io')(PORT, {
-  path: '/server'
-});
+const app = require('express')();
+const server = require('http').createServer(app);
+const io = require('socket.io')();
+io.attach(server);
+server.listen(PORT);
 
 // http.listen(PORT, () => {
 //   console.log(`Listening on port ${PORT}.`);

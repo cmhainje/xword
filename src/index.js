@@ -110,9 +110,8 @@ const CLUE_COLOR = '#EEEEEE';
 // const socket = openSocket('http://localhost:8000');
 // const socket = openSocket('http://xword-server.herokuapp.com/:8000');
 
-const socket = io({
-  path: '/server'
-});
+const PORT = process.env.PORT || 8000;
+const socket = io(`http://x-word.herokuapp.com/:${PORT}`);
 socket.on('id', (id) => {
   socket.id = id;
 })
