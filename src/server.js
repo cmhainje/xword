@@ -1,6 +1,13 @@
+const PORT = process.env.PORT || 8000
+
 var app = require('express')();
-var http = require('http').createServer(app);
-var io = require('socket.io')(http);
+var io = require('socket.io')(PORT, {
+  path: '/server'
+});
+
+// http.listen(PORT, () => {
+//   console.log(`Listening on port ${PORT}.`);
+// });
 
 
 roomCodes = [];
@@ -80,6 +87,3 @@ io.on('connection', (socket) => {
   });
 });
 
-http.listen(8000, () => {
-  console.log('Listening on port 8000.');
-});
