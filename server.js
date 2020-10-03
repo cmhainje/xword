@@ -12,12 +12,12 @@
 
 const PORT = process.env.PORT || 8000
 
-const express = require('express');
+const express = require('express')();
 const app = express();
-// app.use('/static', express.static('build/static'));
-// app.get('/', (req, res) => {
-//   res.sendFile(`/`, { root: `${__dirname}/build` })
-// })
+app.use(express.static(path.join(__dirname, 'build')));
+app.get('/*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'build', 'index.html'));
+});
 
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
