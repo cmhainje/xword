@@ -1,14 +1,31 @@
+// const express = require('express');
+// const socketIO = require('socket.io');
+// 
+// const PORT = process.env.PORT || 8000;
+// const INDEX = '/build/index.html';
+// 
+// const server = express()
+//   .use((req, res) => res.sendFile(INDEX, { root: __dirname }))
+//   .listen(PORT, () => console.log(`Listening on ${PORT}`));
+// 
+// const io = socketIO(server);
+
 const PORT = process.env.PORT || 8000
 
-const app = require('express')();
-const server = require('http').createServer(app);
-const io = require('socket.io')();
-io.attach(server);
-server.listen(PORT);
+const express = require('express');
+const app = express();
+// app.use('/static', express.static('build/static'));
+// app.get('/', (req, res) => {
+//   res.sendFile(`/`, { root: `${__dirname}/build` })
+// })
 
-// http.listen(PORT, () => {
-//   console.log(`Listening on port ${PORT}.`);
-// });
+const http = require('http').createServer(app);
+const io = require('socket.io')(http);
+
+http.listen(PORT, () => {
+  console.log(`Listening on port ${PORT}.`);
+});
+
 
 
 roomCodes = [];
