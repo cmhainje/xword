@@ -9,11 +9,4 @@ my first multiplayer web app using Socket.io, so that's probably
 a bit messy, too.
 
 ## Use
-This app requires a server (in 
-[src/app.js](https://github.com/cmhainje/xword/blob/master/src/App.js))
-to run, but I'm not currently maintaining a server for it. You can run
-it yourself, but this will involve installing all the corresponding
-node modules and serving the server on a public port. More importantly,
-though, the server address to which you need to connect will need to 
-be specified in 
-[src/index.js](https://github.com/cmhainje/xword/blob/master/src/App.js).
+This app is hosted at [x-word.herokuapp.com](https://x-word.herokuapp.com)!
